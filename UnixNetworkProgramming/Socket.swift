@@ -35,18 +35,18 @@ struct FileDescriptor: RawRepresentable {
     typealias RawValue = Int32
     var rawValue: Int32
     
-    func write(message: String) throws {
-        var message = message
-        if Darwin.write(rawValue, &message, message.lengthOfBytes(using: .utf8)) < 0 {
+    func write(_ data: Data) throws {
+        var content = data.map { $0 }
+        if Darwin.write(rawValue, &content, content.count) < 0 {
             throw CLIError(reason: "write error.")
         }
     }
     
-    func read(maxLength: Int) -> String? {
+    func read(maxLength: Int) -> Data? {
         var buffer = [UInt8](repeating: 0, count: maxLength)
         let readed = Darwin.read(rawValue, &buffer, maxLength)
         if readed > 0 {
-            return String(bytes: buffer[0..<readed], encoding: .utf8)
+            return Data(bytes: &buffer, count: readed)
         } else {
             return nil
         }
@@ -122,12 +122,12 @@ struct Connection {
         try fileDescriptor?.close()
     }
     
-    func read(maxLength: Int = 4 * 1024) -> String? {
+    func read(maxLength: Int = 4 * 1024) -> Data? {
         return fileDescriptor?.read(maxLength: maxLength)
     }
     
-    func write(message: String) throws {
-        try fileDescriptor?.write(message: message)
+    func write(_ data: Data) throws {
+        try fileDescriptor?.write(data)
     }
 }
 

@@ -15,12 +15,19 @@ extension Status {
 // $ telnet time-a.nist.gov 13
 // Output: Trying 129.6.15.28...
 
-let address = SocketAddress(family: .inet, port: 13, value: readLine())
+let address = SocketAddress(family: .inet, port: 13, value: "0.0.0.0")
 do {
     let socket = try Socket()
-    let connection = try socket.connect(address)
-    if let readed = connection.read() {
-        print(readed)
+    try socket.bind(address)
+    try socket.listen()
+    
+    while true {
+        let connection = try socket.accept()
+        var tick = time(nil)
+        if let time = ctime(&tick) {
+            try connection.write(Data(bytes: time, count: strlen(time)))
+        }
+        try connection.close()
     }
 } catch let catchedError {
     error(msg: catchedError.localizedDescription, status: .failed)
