@@ -28,7 +28,7 @@ struct CLIError: LocalizedError {
  - Parameter msg: Error message.
  - Parameter status: Exit code with call exit(status).
  */
-func error(msg: String, status: Status = .success) {
+func error(msg: String, status: Status = .success) -> Never {
     perror(msg)
     exit(status)
 }

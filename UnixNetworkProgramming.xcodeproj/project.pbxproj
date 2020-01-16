@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0636F20D23CFF006007FDCF8 /* IPAddress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0636F20C23CFF006007FDCF8 /* IPAddress.swift */; };
+		0636F20F23CFF14A007FDCF8 /* TimeClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0636F20E23CFF14A007FDCF8 /* TimeClient.swift */; };
+		0636F21123CFF153007FDCF8 /* Protocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0636F21023CFF153007FDCF8 /* Protocol.swift */; };
+		0636F21323CFF198007FDCF8 /* TimeServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0636F21223CFF198007FDCF8 /* TimeServer.swift */; };
 		06F67F7023CD438300D7854A /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06F67F6F23CD438300D7854A /* main.swift */; };
 		06F67F7723CD44F200D7854A /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06F67F7623CD44F200D7854A /* Utilities.swift */; };
 		06F67F7923CD46CB00D7854A /* Socket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06F67F7823CD46CB00D7854A /* Socket.swift */; };
@@ -25,6 +29,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0636F20C23CFF006007FDCF8 /* IPAddress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPAddress.swift; sourceTree = "<group>"; };
+		0636F20E23CFF14A007FDCF8 /* TimeClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeClient.swift; sourceTree = "<group>"; };
+		0636F21023CFF153007FDCF8 /* Protocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Protocol.swift; sourceTree = "<group>"; };
+		0636F21223CFF198007FDCF8 /* TimeServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeServer.swift; sourceTree = "<group>"; };
 		06F67F6C23CD438300D7854A /* UnixNetworkProgramming */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = UnixNetworkProgramming; sourceTree = BUILT_PRODUCTS_DIR; };
 		06F67F6F23CD438300D7854A /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		06F67F7623CD44F200D7854A /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
@@ -42,6 +50,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0636F21423CFF1B6007FDCF8 /* Routine */ = {
+			isa = PBXGroup;
+			children = (
+				0636F20E23CFF14A007FDCF8 /* TimeClient.swift */,
+				0636F21223CFF198007FDCF8 /* TimeServer.swift */,
+			);
+			path = Routine;
+			sourceTree = "<group>";
+		};
 		06F67F6323CD438300D7854A = {
 			isa = PBXGroup;
 			children = (
@@ -62,8 +79,11 @@
 			isa = PBXGroup;
 			children = (
 				06F67F6F23CD438300D7854A /* main.swift */,
+				0636F21423CFF1B6007FDCF8 /* Routine */,
 				06F67F7623CD44F200D7854A /* Utilities.swift */,
+				0636F21023CFF153007FDCF8 /* Protocol.swift */,
 				06F67F7823CD46CB00D7854A /* Socket.swift */,
+				0636F20C23CFF006007FDCF8 /* IPAddress.swift */,
 			);
 			path = UnixNetworkProgramming;
 			sourceTree = "<group>";
@@ -126,9 +146,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0636F21323CFF198007FDCF8 /* TimeServer.swift in Sources */,
+				0636F20F23CFF14A007FDCF8 /* TimeClient.swift in Sources */,
 				06F67F7723CD44F200D7854A /* Utilities.swift in Sources */,
+				0636F20D23CFF006007FDCF8 /* IPAddress.swift in Sources */,
 				06F67F7023CD438300D7854A /* main.swift in Sources */,
 				06F67F7923CD46CB00D7854A /* Socket.swift in Sources */,
+				0636F21123CFF153007FDCF8 /* Protocol.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -31,34 +31,6 @@ struct SocketType: RawRepresentable, Equatable {
     static let raw = SocketType(rawValue: SOCK_RAW)
 }
 
-struct FileDescriptor: RawRepresentable {
-    typealias RawValue = Int32
-    var rawValue: Int32
-    
-    func write(_ data: Data) throws {
-        var content = data.map { $0 }
-        if Darwin.write(rawValue, &content, content.count) < 0 {
-            throw CLIError(reason: "write error.")
-        }
-    }
-    
-    func read(maxLength: Int) -> Data? {
-        var buffer = [UInt8](repeating: 0, count: maxLength)
-        let readed = Darwin.read(rawValue, &buffer, maxLength)
-        if readed > 0 {
-            return Data(bytes: &buffer, count: readed)
-        } else {
-            return nil
-        }
-    }
-    
-    func close() throws {
-        if Darwin.close(rawValue) < 0 {
-            throw CLIError(reason: "close error.")
-        }
-    }
-}
-
 enum SocketAddressFamily {
     case inet
     case inet6
@@ -74,124 +46,126 @@ enum SocketAddressFamily {
 }
 
 struct SocketAddress {
-    var family: SocketAddressFamily
-    var port: UInt16?
-    var value: String?
+    var port: UInt16 = 42
+    var ipAddress: IPAddress
     
-    fileprivate func address_in() throws -> Any {
-        switch self.family {
-        case .inet:
-            var address_in = sockaddr_in()
-            address_in.sin_family = sa_family_t(AF_INET)
-            
-            if let port = self.port {
-                address_in.sin_port = in_port_t(port.bigEndian)
-            }
-            
-            if var value = self.value?.cString(using: .utf8) {
-                inet_pton(AF_INET, &value, &address_in.sin_addr)
-            }
-            
-            return address_in
-        case .inet6:
-            var address_in = sockaddr_in6()
-            address_in.sin6_family = sa_family_t(AF_INET6)
-            
-            if let port = self.port {
-                address_in.sin6_port = in_port_t(port.bigEndian)
-            }
-            
-            if var value = self.value?.cString(using: .utf8) {
-                inet_pton(AF_INET6, &value, &address_in.sin6_addr)
-            }
-            
-            return address_in
+    init?(presentation: String, port: UInt16) {
+        self.port = port
+        if let ipAddress = IPAddress(presentation: presentation) {
+            self.ipAddress = ipAddress
+        } else {
+            return nil
         }
+    }
+
+    fileprivate func sockAddress() -> sockaddr {
+        var addr = sockaddr_in()
+        addr.sin_family = sa_family_t(ipAddress.isV6 ? AF_INET6 : AF_INET)
+        addr.sin_port = port.bigEndian
+        ipAddress.data.copyBytes(
+            to: UnsafeMutablePointer<UInt8>(OpaquePointer(UnsafePointer(&addr.sin_addr))),
+            count: ipAddress.data.count
+        )
+        addr.sin_port = port.bigEndian
+        return UnsafePointer(&addr).withMemoryRebound(to: sockaddr.self, capacity: 1) { $0.pointee }
     }
 }
 
 struct Connection {
-    var address: SocketAddress?
-    fileprivate var fileDescriptor: FileDescriptor?
+    fileprivate var fileHandle: FileHandle
     
-    init(address: SocketAddress? = nil) {
-        self.address = address
+    init(fileHandle: FileHandle) {
+        self.fileHandle = fileHandle
+    }
+
+    func readDataToEndOfFile() -> Data {
+        return fileHandle.readDataToEndOfFile()
     }
     
-    func close() throws {
-        try fileDescriptor?.close()
+    func readData(ofLength length: Int) -> Data {
+        return fileHandle.readData(ofLength: length)
     }
     
-    func read(maxLength: Int = 4 * 1024) -> Data? {
-        return fileDescriptor?.read(maxLength: maxLength)
+    func write(_ data: Data) {
+        fileHandle.write(data)
     }
-    
-    func write(_ data: Data) throws {
-        try fileDescriptor?.write(data)
+
+    func close() {
+        fileHandle.closeFile()
     }
 }
 
 struct Socket: CustomStringConvertible {
-    private let socketFileDescriptor: FileDescriptor
+    private let socket: FileHandle
     
     var description: String {
-        return "\(Socket.self): fd_\(socketFileDescriptor.rawValue)"
+        return "\(Socket.self): fd_\(socket.fileDescriptor)"
     }
     
-    init(domain: SocketDomain = .inet, type: SocketType = .stream) throws {
-        self.socketFileDescriptor = FileDescriptor(rawValue: socket(domain.rawValue, type.rawValue, 0))
-        if socketFileDescriptor.rawValue < 0 {
-            throw CLIError(reason: "socket error.")
+    init(domain: SocketDomain = .inet, type: SocketType = .stream) {
+        let fd = Darwin.socket(domain.rawValue, type.rawValue, 0)
+        if fd < 0 {
+            self.socket = FileHandle.nullDevice
+        } else {
+            self.socket = FileHandle(fileDescriptor: fd)
         }
     }
     
-    func connect(_ address: SocketAddress) throws -> Connection {
-        var address_in = try address.address_in()
+    func connect(_ address: SocketAddress) -> Connection? {
+        var sockAddress = address.sockAddress()
         if Darwin.connect(
-            socketFileDescriptor.rawValue,
-            UnsafePointer(&address_in).withMemoryRebound(to: sockaddr.self, capacity: 1) { $0 },
+            socket.fileDescriptor,
+            &sockAddress,
             socklen_t(MemoryLayout<sockaddr>.size)
             ) < 0 {
-            throw CLIError(reason: "connection error.")
+            return nil
         }
         
-        var connection = Connection()
-        connection.fileDescriptor = socketFileDescriptor
-        return connection
+        return Connection(fileHandle: socket)
     }
     
-    func bind(_ address: SocketAddress) throws {
-        var address_in = try address.address_in()
+    /**
+     Bind socket to address.
+     - Parameter address: Address to bind.
+     - Returns: Is bind successed.
+     */
+    @discardableResult
+    func bind(_ address: SocketAddress) -> Bool {
+        var sockAddress = address.sockAddress()
         if Darwin.bind(
-            socketFileDescriptor.rawValue,
-            UnsafePointer(&address_in).withMemoryRebound(to: sockaddr.self, capacity: 1) { $0 },
+            socket.fileDescriptor,
+            &sockAddress,
             socklen_t(MemoryLayout<sockaddr>.size)
             ) < 0 {
-            throw CLIError(reason: "bind error.")
+            return false
         }
+        
+        return true
     }
     
-    func listen(queueLength: Int32 = 2) throws {
-        if Darwin.listen(socketFileDescriptor.rawValue, queueLength) < 0 {
-            throw CLIError(reason: "listen error.")
+    @discardableResult
+    func listen(queueLength: Int32 = 2) -> Bool {
+        if Darwin.listen(socket.fileDescriptor, queueLength) < 0 {
+            return false
         }
+        
+        return true
     }
     
-    func accept() throws -> Connection {
+    func accept() -> Connection? {
         var address = sockaddr()
         var size = socklen_t(MemoryLayout<sockaddr>.size)
-        let connectedFileDescriptor = FileDescriptor(rawValue: Darwin.accept(socketFileDescriptor.rawValue, &address, &size))
-        if connectedFileDescriptor.rawValue < 0 {
-            throw CLIError(reason: "accept error.")
-        }
+        let conn_fd = Darwin.accept(socket.fileDescriptor, &address, &size)
         
-        var connection = Connection()
-        connection.fileDescriptor = connectedFileDescriptor
-        return connection
+        if conn_fd < 0 {
+            return nil
+        } else {
+            return Connection(fileHandle: FileHandle(fileDescriptor: conn_fd))
+        }
     }
     
-    func close() throws {
-        try socketFileDescriptor.close()
+    func close() {
+        socket.closeFile()
     }
 }
 
